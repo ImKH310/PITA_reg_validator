@@ -705,38 +705,52 @@
             }
         });
 
-        // Parse CSV function
+        // Parse CSV function with enhanced debugging
         function parseCSV(csvText) {
-            console.log('Starting CSV parsing...');
-            console.log('CSV preview:', csvText.substring(0, 300) + '...');
+            console.log('=== Starting CSV parsing ===');
+            console.log('CSV preview:', csvText.substring(0, 200) + '...');
             
             const lines = csvText.split(/\r?\n/);
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
             
             console.log('Headers found:', headers);
+            console.log('Total lines in CSV:', lines.length);
             
             relationshipData = [];
             
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (!line) continue;
+                if (!line) {
+                    console.log(`Line ${i}: Empty, skipping`);
+                    continue;
+                }
                 
-                console.log(`\nProcessing line ${i}...`);
+                console.log(`\n=== Processing line ${i} ===`);
+                console.log('Raw line preview:', line.substring(0, 100) + '...');
                 
                 const values = parseCSVLine(line);
-                console.log(`Parsed ${values.length} values`);
+                console.log(`Parsed ${values.length} columns`);
                 
                 if (values.length >= 4) {
-                    console.log('Value 0 (a):', values[0].substring(0, 100) + '...');
-                    console.log('Value 1 (b):', values[1].substring(0, 100) + '...');
+                    console.log('Column 0 (a) preview:', values[0].substring(0, 50) + '...');
+                    console.log('Column 1 (b) preview:', values[1].substring(0, 50) + '...');
+                    console.log('Column 2 (r1) preview:', values[2].substring(0, 50) + '...');
+                    console.log('Column 3 (r2) preview:', values[3].substring(0, 50) + '...');
                     
+                    console.log('\n--- Parsing Node A ---');
                     const nodeA = parseNodeData(values[0]);
+                    console.log('\n--- Parsing Node B ---');
                     const nodeB = parseNodeData(values[1]);
+                    console.log('\n--- Parsing R1 Relationship ---');
                     const r1Data = parseRelationshipData(values[2]);
+                    console.log('\n--- Parsing R2 Relationship ---');
                     const r2Data = parseRelationshipData(values[3]);
 
+                    console.log('\n--- Final parsed data ---');
                     console.log('Node A:', nodeA.regulation, 'Desc length:', nodeA.description?.length || 0);
                     console.log('Node B:', nodeB.regulation, 'Desc length:', nodeB.description?.length || 0);
+                    console.log('R1:', r1Data.type, r1Data.confidence, 'Desc length:', r1Data.description?.length || 0);
+                    console.log('R2:', r2Data.type, r2Data.confidence, 'Desc length:', r2Data.description?.length || 0);
 
                     const relationship = {
                         id: relationshipData.length + 1,
@@ -760,13 +774,29 @@
                     };
 
                     relationshipData.push(relationship);
-                    console.log(`Created relationship ${relationship.id}`);
+                    console.log(`✓ Created relationship ${relationship.id}`);
+                    
+                    // Extra validation for R2
+                    if (!relationship.r2.type || !relationship.r2.description) {
+                        console.warn(`⚠️ Relationship ${relationship.id} missing R2 data:`, {
+                            type: relationship.r2.type,
+                            description: relationship.r2.description?.substring(0, 50)
+                        });
+                    }
                 } else {
-                    console.warn(`Line ${i} has insufficient columns:`, values.length);
+                    console.warn(`Line ${i} has insufficient columns: ${values.length}, skipping`);
                 }
             }
             
+            console.log('=== CSV parsing complete ===');
             console.log('Total relationships parsed:', relationshipData.length);
+            
+            // Final validation
+            const r2Issues = relationshipData.filter(rel => !rel.r2.type || !rel.r2.description);
+            if (r2Issues.length > 0) {
+                console.warn(`Found ${r2Issues.length} relationships with R2 issues:`, 
+                    r2Issues.map(rel => rel.id));
+            }
             
             if (relationshipData.length > 0) {
                 showNavigationBar();
@@ -955,19 +985,34 @@
             }
         }
 
-        // Create relationship card
+        // Create relationship card with enhanced debugging
         function createRelationshipCard(rel, index) {
             const card = document.createElement('div');
             const validationStatus = getValidationStatus(rel);
             
             card.className = `relationship-card ${validationStatus.class}`;
             
-            // Debug log for R2 data
-            console.log(`Card ${index} R2 data:`, {
-                type: rel.r2.type,
-                confidence: rel.r2.confidence,
-                description: rel.r2.description?.substring(0, 100)
+            // Enhanced debugging for R2 data
+            console.log(`=== Creating card ${index} ===`);
+            console.log('R1 data:', {
+                type: rel.r1.type || 'MISSING',
+                confidence: rel.r1.confidence || 'MISSING',
+                description: rel.r1.description ? rel.r1.description.substring(0, 50) + '...' : 'MISSING'
             });
+            console.log('R2 data:', {
+                type: rel.r2.type || 'MISSING',
+                confidence: rel.r2.confidence || 'MISSING',
+                description: rel.r2.description ? rel.r2.description.substring(0, 50) + '...' : 'MISSING'
+            });
+            
+            // Ensure we have fallback values
+            const r1Type = rel.r1.type || 'UNKNOWN';
+            const r1Confidence = rel.r1.confidence || 'unknown';
+            const r1Description = rel.r1.description || 'No description found';
+            
+            const r2Type = rel.r2.type || 'UNKNOWN';
+            const r2Confidence = rel.r2.confidence || 'unknown';
+            const r2Description = rel.r2.description || 'No description found';
             
             card.innerHTML = `
                 <div class="validation-status ${validationStatus.class}">${validationStatus.text}</div>
@@ -986,11 +1031,11 @@
                     
                     <div class="relationship-arrow">
                         <div class="arrow-section r1">
-                            <div class="relationship-type">${rel.r1.type || 'UNKNOWN'}</div>
+                            <div class="relationship-type">${r1Type}</div>
                             <div class="relationship-direction">R1 (A → B)</div>
                         </div>
                         <div class="arrow-section r2">
-                            <div class="relationship-type">${rel.r2.type || 'UNKNOWN'}</div>
+                            <div class="relationship-type">${r2Type}</div>
                             <div class="relationship-direction">R2 (B → A)</div>
                         </div>
                     </div>
@@ -1007,9 +1052,9 @@
                     <div class="validation-grid">
                         <div class="validation-item ${rel.r1.validatedBy ? 'validated' : ''}">
                             <h4>🔄 R1 Relationship (${rel.nodeA.regulation || 'A'} → ${rel.nodeB.regulation || 'B'})</h4>
-                            <p><strong>Relationship Type:</strong> ${rel.r1.type || 'Not found'}</p>
-                            <p><strong>GPT Description:</strong> ${rel.r1.description || 'No description found'}</p>
-                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${rel.r1.confidence || 'low'}">${rel.r1.confidence || 'unknown'}</span></p>
+                            <p><strong>Relationship Type:</strong> ${r1Type}</p>
+                            <p><strong>GPT Description:</strong> ${r1Description}</p>
+                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${r1Confidence}">${r1Confidence}</span></p>
                             <div class="confidence-selector">
                                 <span>Human Validation:</span>
                                 ${createConfidenceButtons(`r1_${index}`, rel.r1.confidenceHuman)}
@@ -1020,9 +1065,9 @@
                         
                         <div class="validation-item ${rel.r2.validatedBy ? 'validated' : ''}">
                             <h4>🔄 R2 Relationship (${rel.nodeB.regulation || 'B'} → ${rel.nodeA.regulation || 'A'})</h4>
-                            <p><strong>Relationship Type:</strong> ${rel.r2.type || 'Not found'}</p>
-                            <p><strong>GPT Description:</strong> ${rel.r2.description || 'No description found'}</p>
-                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${rel.r2.confidence || 'low'}">${rel.r2.confidence || 'unknown'}</span></p>
+                            <p><strong>Relationship Type:</strong> ${r2Type}</p>
+                            <p><strong>GPT Description:</strong> ${r2Description}</p>
+                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${r2Confidence}">${r2Confidence}</span></p>
                             <div class="confidence-selector">
                                 <span>Human Validation:</span>
                                 ${createConfidenceButtons(`r2_${index}`, rel.r2.confidenceHuman)}
