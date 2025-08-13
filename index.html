@@ -854,25 +854,42 @@
             };
 
             try {
-                // Extract relationship type
-                const typeMatch = relString.match(/\[:([A-Z_]+)/);
+                // Remove quotes if present
+                let cleanString = relString.replace(/^"(.*)"$/, '$1');
+                
+                // Extract relationship type - look for [:TYPE pattern
+                const typeMatch = cleanString.match(/\[:([A-Z_]+)/);
                 if (typeMatch) {
                     rel.type = typeMatch[1];
+                    console.log('Found type:', rel.type);
                 }
 
-                // Extract confidence
-                const confMatch = relString.match(/confidence:\s*(\w+)/);
+                // Extract confidence - look for confidence: value pattern
+                const confMatch = cleanString.match(/confidence:\s*(\w+)/);
                 if (confMatch) {
                     rel.confidence = confMatch[1];
+                    console.log('Found confidence:', rel.confidence);
                 }
 
-                // Extract description - handle complex text
-                const descMatch = relString.match(/description:\s*([^}]+?)(?=}]?\s*$)/);
+                // Extract description - look for description: text pattern
+                const descMatch = cleanString.match(/description:\s*([^}]+?)(?=}]?\s*$)/);
                 if (descMatch) {
                     rel.description = descMatch[1].trim();
+                    console.log('Found description length:', rel.description.length);
+                } else {
+                    // Alternative pattern for description
+                    const altDescMatch = cleanString.match(/description:\s*(.+?)$/);
+                    if (altDescMatch) {
+                        rel.description = altDescMatch[1].replace(/}]$/, '').trim();
+                        console.log('Found description (alt) length:', rel.description.length);
+                    }
                 }
 
-                console.log('Extracted relationship:', rel.type, rel.confidence, 'Desc length:', rel.description.length);
+                console.log('Final extracted relationship:', {
+                    type: rel.type,
+                    confidence: rel.confidence,
+                    descriptionLength: rel.description.length
+                });
             } catch (error) {
                 console.error('Error parsing relationship data:', error);
             }
@@ -945,6 +962,13 @@
             
             card.className = `relationship-card ${validationStatus.class}`;
             
+            // Debug log for R2 data
+            console.log(`Card ${index} R2 data:`, {
+                type: rel.r2.type,
+                confidence: rel.r2.confidence,
+                description: rel.r2.description?.substring(0, 100)
+            });
+            
             card.innerHTML = `
                 <div class="validation-status ${validationStatus.class}">${validationStatus.text}</div>
                 
@@ -983,9 +1007,22 @@
                     <div class="validation-grid">
                         <div class="validation-item ${rel.r1.validatedBy ? 'validated' : ''}">
                             <h4>🔄 R1 Relationship (${rel.nodeA.regulation || 'A'} → ${rel.nodeB.regulation || 'B'})</h4>
-                            <p><strong>Relationship Type:</strong> ${rel.r1.type}</p>
-                            <p><strong>GPT Description:</strong> ${rel.r1.description}</p>
-                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${rel.r2.confidence}">${rel.r2.confidence}</span></p>
+                            <p><strong>Relationship Type:</strong> ${rel.r1.type || 'Not found'}</p>
+                            <p><strong>GPT Description:</strong> ${rel.r1.description || 'No description found'}</p>
+                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${rel.r1.confidence || 'low'}">${rel.r1.confidence || 'unknown'}</span></p>
+                            <div class="confidence-selector">
+                                <span>Human Validation:</span>
+                                ${createConfidenceButtons(`r1_${index}`, rel.r1.confidenceHuman)}
+                            </div>
+                            <textarea class="description-input" placeholder="Enter additional notes..." 
+                                id="r1_desc_${index}">${rel.r1.userDescription || ''}</textarea>
+                        </div>
+                        
+                        <div class="validation-item ${rel.r2.validatedBy ? 'validated' : ''}">
+                            <h4>🔄 R2 Relationship (${rel.nodeB.regulation || 'B'} → ${rel.nodeA.regulation || 'A'})</h4>
+                            <p><strong>Relationship Type:</strong> ${rel.r2.type || 'Not found'}</p>
+                            <p><strong>GPT Description:</strong> ${rel.r2.description || 'No description found'}</p>
+                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${rel.r2.confidence || 'low'}">${rel.r2.confidence || 'unknown'}</span></p>
                             <div class="confidence-selector">
                                 <span>Human Validation:</span>
                                 ${createConfidenceButtons(`r2_${index}`, rel.r2.confidenceHuman)}
@@ -1310,17 +1347,4 @@
         });
     </script>
 </body>
-</html>rel.r1.confidence}">${rel.r1.confidence}</span></p>
-                            <div class="confidence-selector">
-                                <span>Human Validation:</span>
-                                ${createConfidenceButtons(`r1_${index}`, rel.r1.confidenceHuman)}
-                            </div>
-                            <textarea class="description-input" placeholder="Enter additional notes..." 
-                                id="r1_desc_${index}">${rel.r1.userDescription || ''}</textarea>
-                        </div>
-                        
-                        <div class="validation-item ${rel.r2.validatedBy ? 'validated' : ''}">
-                            <h4>🔄 R2 Relationship (${rel.nodeB.regulation || 'B'} → ${rel.nodeA.regulation || 'A'})</h4>
-                            <p><strong>Relationship Type:</strong> ${rel.r2.type}</p>
-                            <p><strong>GPT Description:</strong> ${rel.r2.description}</p>
-                            <p><strong>GPT Confidence:</strong> <span class="confidence-badge ${
+</html>
