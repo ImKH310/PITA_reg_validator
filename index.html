@@ -328,10 +328,44 @@
             border: 1px solid #d1d5db;
             border-radius: 8px;
             padding: 15px;
-            max-height: 200px;
-            overflow-y: auto;
+            max-height: none;
+            overflow-y: visible;
             font-size: 0.9rem;
             line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .description-expandable {
+            position: relative;
+        }
+
+        .description-content {
+            max-height: 150px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .description-content.expanded {
+            max-height: none;
+        }
+
+        .description-toggle {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .description-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.3);
         }
 
         .relationship-arrow {
@@ -1000,6 +1034,44 @@
             highlightCurrentRelationship();
         }
 
+        // Create expandable description
+        function createExpandableDescription(text, index, nodeType) {
+            const shortText = text.length > 300 ? text.substring(0, 300) + '...' : text;
+            const needsExpansion = text.length > 300;
+            
+            return `
+                <div class="description-expandable">
+                    <div class="description-content" id="desc_${nodeType}_${index}">
+                        ${needsExpansion ? shortText : text}
+                    </div>
+                    ${needsExpansion ? 
+                        `<button class="description-toggle" onclick="toggleDescription('${nodeType}_${index}', ${index}, '${nodeType}')">
+                            Show More
+                        </button>` : 
+                        ''}
+                </div>
+            `;
+        }
+
+        // Toggle description expansion
+        function toggleDescription(id, index, nodeType) {
+            const contentDiv = document.getElementById(`desc_${id}`);
+            const button = event.target;
+            const rel = relationshipData[index];
+            const fullText = nodeType === 'a' ? rel.nodeA.description : rel.nodeB.description;
+            
+            if (contentDiv.classList.contains('expanded')) {
+                // Collapse
+                contentDiv.classList.remove('expanded');
+                contentDiv.innerHTML = fullText.substring(0, 300) + '...';
+                button.textContent = 'Show More';
+            } else {
+                // Expand
+                contentDiv.classList.add('expanded');
+                contentDiv.innerHTML = fullText;
+                button.textContent = 'Show Less';
+            }
+        }
         // Create relationship card
         function createRelationshipCard(rel, index) {
             const card = document.createElement('div');
@@ -1039,7 +1111,9 @@
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Description:</div>
-                                <div class="description-box">${rel.nodeA.description || 'No description available'}</div>
+                                <div class="description-box">
+                                    ${createExpandableDescription(rel.nodeA.description || 'No description available', index, 'a')}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1080,7 +1154,9 @@
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Description:</div>
-                                <div class="description-box">${rel.nodeB.description || 'No description available'}</div>
+                                <div class="description-box">
+                                    ${createExpandableDescription(rel.nodeB.description || 'No description available', index, 'b')}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1125,6 +1201,7 @@
             `;
             
             return card;
+        }
         }
 
         // Get validation status
