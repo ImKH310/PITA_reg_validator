@@ -1036,13 +1036,16 @@
 
         // Create expandable description
         function createExpandableDescription(text, index, nodeType) {
-            const shortText = text.length > 300 ? text.substring(0, 300) + '...' : text;
-            const needsExpansion = text.length > 300;
+            if (!text || text === 'No description available') {
+                return text;
+            }
+            
+            const needsExpansion = text.length > 400;
             
             return `
                 <div class="description-expandable">
-                    <div class="description-content" id="desc_${nodeType}_${index}">
-                        ${needsExpansion ? shortText : text}
+                    <div class="description-content ${needsExpansion ? 'collapsed' : ''}" id="desc_${nodeType}_${index}">
+                        ${text}
                     </div>
                     ${needsExpansion ? 
                         `<button class="description-toggle" onclick="toggleDescription('${nodeType}_${index}', ${index}, '${nodeType}')">
@@ -1057,19 +1060,15 @@
         function toggleDescription(id, index, nodeType) {
             const contentDiv = document.getElementById(`desc_${id}`);
             const button = event.target;
-            const rel = relationshipData[index];
-            const fullText = nodeType === 'a' ? rel.nodeA.description : rel.nodeB.description;
             
-            if (contentDiv.classList.contains('expanded')) {
-                // Collapse
-                contentDiv.classList.remove('expanded');
-                contentDiv.innerHTML = fullText.substring(0, 300) + '...';
-                button.textContent = 'Show More';
-            } else {
+            if (contentDiv.classList.contains('collapsed')) {
                 // Expand
-                contentDiv.classList.add('expanded');
-                contentDiv.innerHTML = fullText;
+                contentDiv.classList.remove('collapsed');
                 button.textContent = 'Show Less';
+            } else {
+                // Collapse
+                contentDiv.classList.add('collapsed');
+                button.textContent = 'Show More';
             }
         }
         // Create relationship card
@@ -1092,29 +1091,8 @@
                 <div class="comparison-container">
                     <div class="node-panel">
                         <h3>🇨🇦 ${rel.nodeA.regulation || 'CNSC'}</h3>
-                        <div class="node-info">
-                            <div class="info-item">
-                                <div class="info-label">Title:</div>
-                                <div class="info-value">${rel.nodeA.title || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Category:</div>
-                                <div class="info-value">${rel.nodeA.category || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Section:</div>
-                                <div class="info-value">${rel.nodeA.section || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Scope:</div>
-                                <div class="info-value">${rel.nodeA.scope || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Description:</div>
-                                <div class="description-box">
-                                    ${createExpandableDescription(rel.nodeA.description || 'No description available', index, 'a')}
-                                </div>
-                            </div>
+                        <div class="node-description">
+                            ${createExpandableDescription(rel.nodeA.description || 'No description available', index, 'a')}
                         </div>
                     </div>
                     
@@ -1122,42 +1100,17 @@
                         <div class="arrow-section r1">
                             <div class="relationship-type">${rel.r1.type || 'UNKNOWN'}</div>
                             <div class="relationship-direction">R1 (A → B)</div>
-                            <div class="confidence-badge ${rel.r1.confidence.toLowerCase()}">${rel.r1.confidence || 'unknown'}</div>
-                            <div class="relationship-description">${rel.r1.description || 'No description'}</div>
                         </div>
                         <div class="arrow-section r2">
                             <div class="relationship-type">${rel.r2.type || 'UNKNOWN'}</div>
                             <div class="relationship-direction">R2 (B → A)</div>
-                            <div class="confidence-badge ${rel.r2.confidence.toLowerCase()}">${rel.r2.confidence || 'unknown'}</div>
-                            <div class="relationship-description">${rel.r2.description || 'No description'}</div>
                         </div>
                     </div>
                     
                     <div class="node-panel">
                         <h3>🇺🇸 ${rel.nodeB.regulation || 'USNRC'}</h3>
-                        <div class="node-info">
-                            <div class="info-item">
-                                <div class="info-label">Title:</div>
-                                <div class="info-value">${rel.nodeB.title || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Category:</div>
-                                <div class="info-value">${rel.nodeB.category || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Section:</div>
-                                <div class="info-value">${rel.nodeB.criterion_number || rel.nodeB.section || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Scope:</div>
-                                <div class="info-value">${rel.nodeB.scope || 'N/A'}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Description:</div>
-                                <div class="description-box">
-                                    ${createExpandableDescription(rel.nodeB.description || 'No description available', index, 'b')}
-                                </div>
-                            </div>
+                        <div class="node-description">
+                            ${createExpandableDescription(rel.nodeB.description || 'No description available', index, 'b')}
                         </div>
                     </div>
                 </div>
