@@ -767,9 +767,23 @@
         document.getElementById('csvFile').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
+                console.log('File selected:', file.name);
+                showNotification('Processing CSV file...');
+                
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    parseCSV(e.target.result);
+                    console.log('File loaded, parsing CSV...');
+                    try {
+                        parseCSV(e.target.result);
+                        showNotification('CSV file loaded successfully!');
+                    } catch (error) {
+                        console.error('Error parsing CSV:', error);
+                        showNotification('Error parsing CSV file. Please check the format.');
+                    }
+                };
+                reader.onerror = function() {
+                    console.error('Error reading file');
+                    showNotification('Error reading CSV file.');
                 };
                 reader.readAsText(file, 'utf-8');
             }
@@ -777,6 +791,8 @@
 
         // Parse node data from structured string
         function parseNodeData(nodeString) {
+            console.log('Parsing node data:', nodeString.substring(0, 100) + '...');
+            
             const node = {
                 regulation: '',
                 scope: '',
@@ -789,21 +805,35 @@
                 primary_safety_function: ''
             };
 
-            // Extract regulation type (CNSC or USNRC)
-            const regMatch = nodeString.match(/:([A-Z]+)/);
-            if (regMatch) {
-                node.regulation = regMatch[1];
-            }
-
-            // Extract key-value pairs
-            const keyValueRegex = /(\w+):\s*([^,}]+)/g;
-            let match;
-            while ((match = keyValueRegex.exec(nodeString)) !== null) {
-                const key = match[1];
-                const value = match[2].trim();
-                if (node.hasOwnProperty(key)) {
-                    node[key] = value;
+            try {
+                // Extract regulation type (CNSC or USNRC)
+                const regMatch = nodeString.match(/:([A-Z]+)/);
+                if (regMatch) {
+                    node.regulation = regMatch[1];
                 }
+
+                // Extract key-value pairs with improved regex
+                const patterns = {
+                    description: /description:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    title: /title:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    category: /category:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    section: /section:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    scope: /scope:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    label: /label:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    criterion_number: /criterion_number:\s*([^,}]+?)(?=,\s*\w+:|$)/g,
+                    primary_safety_function: /primary_safety_function:\s*([^,}]+?)(?=,\s*\w+:|$)/g
+                };
+
+                for (const [key, pattern] of Object.entries(patterns)) {
+                    const match = pattern.exec(nodeString);
+                    if (match) {
+                        node[key] = match[1].trim();
+                    }
+                }
+
+                console.log('Parsed node:', node.regulation, node.title);
+            } catch (error) {
+                console.error('Error parsing node data:', error);
             }
 
             return node;
@@ -811,27 +841,35 @@
 
         // Parse relationship data from structured string
         function parseRelationshipData(relString) {
+            console.log('Parsing relationship data:', relString.substring(0, 50) + '...');
+            
             const rel = {
                 type: '',
                 confidence: '',
                 description: ''
             };
 
-            // Extract relationship type
-            const typeMatch = relString.match(/\[:([A-Z_]+)/);
-            if (typeMatch) {
-                rel.type = typeMatch[1];
-            }
+            try {
+                // Extract relationship type
+                const typeMatch = relString.match(/\[:([A-Z_]+)/);
+                if (typeMatch) {
+                    rel.type = typeMatch[1];
+                }
 
-            // Extract confidence and description
-            const confMatch = relString.match(/confidence:\s*(\w+)/);
-            if (confMatch) {
-                rel.confidence = confMatch[1];
-            }
+                // Extract confidence and description with improved patterns
+                const confMatch = relString.match(/confidence:\s*(\w+)/);
+                if (confMatch) {
+                    rel.confidence = confMatch[1];
+                }
 
-            const descMatch = relString.match(/description:\s*([^}]+)/);
-            if (descMatch) {
-                rel.description = descMatch[1].trim();
+                const descMatch = relString.match(/description:\s*([^}]+)/);
+                if (descMatch) {
+                    rel.description = descMatch[1].trim();
+                }
+
+                console.log('Parsed relationship:', rel.type, rel.confidence);
+            } catch (error) {
+                console.error('Error parsing relationship data:', error);
             }
 
             return rel;
@@ -839,8 +877,13 @@
 
         // CSV parsing function
         function parseCSV(csvText) {
+            console.log('Starting CSV parsing...');
+            console.log('CSV content preview:', csvText.substring(0, 200) + '...');
+            
             const lines = csvText.split(/\r?\n/);
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            
+            console.log('Headers found:', headers);
             
             relationshipData = [];
             
@@ -848,8 +891,12 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
+                console.log(`Processing line ${i}:`, line.substring(0, 100) + '...');
+                
                 const values = parseCSVLine(line);
                 if (values.length >= 4) {
+                    console.log('Parsed values count:', values.length);
+                    
                     const nodeA = parseNodeData(values[0]);
                     const nodeB = parseNodeData(values[1]);
                     const r1Data = parseRelationshipData(values[2]);
@@ -877,34 +924,55 @@
                     };
 
                     relationshipData.push(relationship);
+                    console.log(`Created relationship ${relationship.id}:`, nodeA.regulation, '→', nodeB.regulation);
+                } else {
+                    console.warn(`Line ${i} has insufficient columns:`, values.length);
                 }
             }
             
-            showCollaborationInfo();
-            renderRelationships();
-            updateStats();
-            saveToSession();
+            console.log('Total relationships parsed:', relationshipData.length);
+            
+            if (relationshipData.length > 0) {
+                showCollaborationInfo();
+                renderRelationships();
+                updateStats();
+                saveToSession();
+                showNotification(`Successfully loaded ${relationshipData.length} relationships!`);
+            } else {
+                showNotification('No valid relationships found in CSV file. Please check the format.');
+            }
         }
 
         // CSV line parser (handles commas and quotes)
         function parseCSVLine(line) {
+            console.log('Parsing CSV line:', line.substring(0, 100) + '...');
+            
             const result = [];
             let current = '';
             let inQuotes = false;
+            let quoteCount = 0;
             
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
                 
                 if (char === '"') {
-                    inQuotes = !inQuotes;
+                    quoteCount++;
+                    // Toggle quote state only on odd quote counts
+                    if (quoteCount % 2 === 1) {
+                        inQuotes = !inQuotes;
+                    }
+                    // Don't add the quote character to the result
                 } else if (char === ',' && !inQuotes) {
                     result.push(current.trim());
                     current = '';
+                    quoteCount = 0;
                 } else {
                     current += char;
                 }
             }
             result.push(current.trim());
+            
+            console.log('Parsed CSV fields count:', result.length);
             
             return result;
         }
@@ -1398,6 +1466,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing validator...');
             initializeSession();
             simulateAutoSync();
             
@@ -1409,6 +1478,11 @@
 
             // Add debugging for file upload
             console.log('File upload handler initialized');
+            
+            // Add test button for debugging (remove in production)
+            if (window.location.hostname === 'localhost' || window.location.hostname.includes('github.io')) {
+                console.log('Running on GitHub Pages or localhost');
+            }
         });
 
         // Keyboard shortcuts
