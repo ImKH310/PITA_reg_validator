@@ -1012,16 +1012,17 @@
                 .filter(attr => attr.value && attr.value.trim() !== '')
                 .map(attr => {
                     const isLongText = attr.value.length > 150;
-                    const needsExpansion = attr.value.length > 300;
+                    const needsExpansion = attr.value.length > 200;
+                    const uniqueId = `attr_${nodeType}_${index}_${attr.key}`;
                     
                     return `
                         <div class="node-attribute">
                             <div class="attribute-label">${attr.label}</div>
-                            <div class="expandable-content ${needsExpansion ? 'collapsed' : ''}" id="attr_${nodeType}_${index}_${attr.key}">
+                            <div class="expandable-content ${needsExpansion ? 'collapsed' : ''}" id="${uniqueId}">
                                 <div class="attribute-value ${isLongText ? 'long-text' : ''}">
                                     ${attr.value}
                                 </div>
-                                ${needsExpansion ? `<button class="expand-toggle" onclick="toggleAttribute('${nodeType}_${index}_${attr.key}')">Show More</button>` : ''}
+                                ${needsExpansion ? `<button class="expand-toggle" onclick="toggleAttribute('${uniqueId}')">Show More</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -1029,10 +1030,15 @@
                 .join('');
         }
 
-        // Toggle attribute expansion
-        function toggleAttribute(id) {
-            const container = document.getElementById(`attr_${id}`);
-            const button = event.target;
+        // Toggle attribute expansion - fixed function
+        function toggleAttribute(elementId) {
+            const container = document.getElementById(elementId);
+            const button = container.querySelector('.expand-toggle');
+            
+            if (!container || !button) {
+                console.error('Could not find container or button for:', elementId);
+                return;
+            }
             
             if (container.classList.contains('collapsed')) {
                 container.classList.remove('collapsed');
