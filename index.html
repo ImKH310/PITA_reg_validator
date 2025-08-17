@@ -450,14 +450,14 @@
             border-color: #3182ce;
         }
 
-        .confidence-btn.low { border-color: #f56565; }
-        .confidence-btn.low.active { background: #f56565; }
+        .confidence-btn.keep { border-color: #48bb78; }
+        .confidence-btn.keep.active { background: #48bb78; }
         
-        .confidence-btn.medium { border-color: #ed8936; }
-        .confidence-btn.medium.active { background: #ed8936; }
+        .confidence-btn.modify { border-color: #ed8936; }
+        .confidence-btn.modify.active { background: #ed8936; }
         
-        .confidence-btn.high { border-color: #48bb78; }
-        .confidence-btn.high.active { background: #48bb78; }
+        .confidence-btn.remove { border-color: #f56565; }
+        .confidence-btn.remove.active { background: #f56565; }
 
         .description-input {
             width: 100%;
@@ -1191,7 +1191,7 @@
 
         // Create confidence buttons
         function createConfidenceButtons(name, selectedValue) {
-            const levels = ['low', 'medium', 'high'];
+            const levels = ['keep', 'modify', 'remove'];
             return levels.map(level => 
                 `<button class="confidence-btn ${level} ${selectedValue === level ? 'active' : ''}" 
                          onclick="selectConfidence('${name}', '${level}')">${level}</button>`
