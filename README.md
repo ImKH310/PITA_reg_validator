@@ -39,3 +39,7 @@ Your CSV should contain three main columns:
 - Export early and often to preserve your work
 
 Perfect for regulatory compliance teams working with cross-jurisdictional relationship data.
+
+## 📄 Research Attribution
+This research is part of the 2025 PITA Program: "Human Systems Engineering for Safe, Efficient, and Decentralized Remote Operations of Automated Nuclear Microreactors" - a collaboration between Carnegie Mellon University and Westinghouse. Authorships: Kahyun Jeon, Seongeun Park, and Pingbo Tang.
+
