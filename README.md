@@ -1,6 +1,6 @@
-# Bidirectional Relationship Validator
+# LLM-generated Multiple Relationships Human Validator
 
-A web-based tool for validating and assessing confidence levels for CNSC-USNRC bidirectional relationships.
+A web-based tool for validating and assessing confidence levels for CNSC-USNRC multiple or conflict relationships.
 
 ## 🚀 Quick Start
 
