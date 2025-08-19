@@ -4,7 +4,7 @@ A web-based tool for validating and assessing confidence levels for CNSC-USNRC m
 
 ## 🚀 Quick Start
 
-1. **Access the tool**: Open the [live demo](https://yourusername.github.io/your-repo-name)
+1. **Access the tool**: Open the [live demo](https://imkh310.github.io/PITA_reg_validator/)
 2. **Enter your name** when prompted for validation tracking
 3. **Upload CSV file** using the "📁 Upload CSV File" button
 4. **Review relationships** and assign confidence levels (keep/modify/remove)
